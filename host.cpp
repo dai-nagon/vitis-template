@@ -10,7 +10,8 @@ int main(int argc, char** argv) {
     }
 
     std::string binaryFile = argv[1];
-    size_t vector_size_bytes = sizeof(int) * DATA_SIZE;
+    size_t vector_size_bytes = sizeof(int) * 
+        ;
     cl_int err;
     cl::Context context;
     cl::Kernel krnl_vector_add;
@@ -40,17 +41,15 @@ int main(int argc, char** argv) {
     }
 
     // OPENCL HOST CODE AREA START
-    // get_xil_devices() is a utility API which will find the xilinx
-    // platforms and will return list of devices connected to Xilinx platform
+    //デバイス取得
     auto devices = xcl::get_xil_devices();
-    // read_binary_file() is a utility API which will load the binaryFile
-    // and will return the pointer to file buffer.
+    //バイナリ(回路データ)読出
     auto fileBuf = xcl::read_binary_file(binaryFile);
     cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};
     bool valid_device = false;
     for (unsigned int i = 0; i < devices.size(); i++) {
         auto device = devices[i];
-        // Creating Context and Command Queue for selected Device
+        // コンテキストとコマンドキューの生成 Creating Context and Command Queue for selected Device
         OCL_CHECK(err, context = cl::Context(device, NULL, NULL, NULL, &err));
         OCL_CHECK(err, q = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err));
         std::cout << "Trying to program device[" << i << "]: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
@@ -61,12 +60,12 @@ int main(int argc, char** argv) {
             std::cout << "Device[" << i << "]: program successful!\n";
             OCL_CHECK(err, krnl_vector_add = cl::Kernel(program, "krnl", &err));
             valid_device = true;
-            break; // we break because we found a valid device
+            break; // break if there is a valid device
         }
     }
     if (!valid_device) {
         std::cout << "Failed to program any device found, exit!\n";
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);// exit if there are no valid devices
     }
 
     // Allocate Buffer in Global Memory
