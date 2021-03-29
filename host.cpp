@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
     
     cl_int err;
     cl::Context ctxt;//コンテキストの宣言
+    cl::CommandQueue q;//コマンドキューの宣言　コンテキストやキューはカーネルへのデータ読み書きや実行に必要
     cl::Kernel krnl_vector_add;//カーネルの宣言
-    cl::CommandQueue q;//コマンドキューの宣言
     // Allocate Memory in Host Memory
     // When creating a buffer with user pointer (CL_MEM_USE_HOST_PTR), under the
     // hood user ptr
@@ -35,12 +35,12 @@ int main(int argc, char** argv) {
     // boundary. It will
     // ensure that user buffer is used when user create Buffer/Mem object with
     // CL_MEM_USE_HOST_PTR
-    //    /*
+    //  
+    // 配列(ホスト側)の宣言
     std::vector<int, aligned_allocator<int> > source_in1(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_in2(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_hw_results(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_sw_results(DATA_SIZE);
- //   */
    // int source_in1[DATA_SIZE], source_in2[DATA_SIZE], source_hw_results[DATA_SIZE], source_sw_results[DATA_SIZE];
     
     // Create the test data
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     // OPENCL HOST CODE AREA START
     //デバイスの宣言および取得
     auto dev = xcl::get_xil_devices();
-    //バイナリ(回路データ)読出
+    //カーネル生成(xclbinファイルの読出し)
     auto fileBuf = xcl::read_binary_file(binaryFile);
     cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};
     bool valid_device = false;
@@ -82,6 +82,7 @@ int main(int argc, char** argv) {
     // Allocate Buffer in Global Memory
     // Buffers are allocated using CL_MEM_USE_HOST_PTR for efficient memory and
     // Device-to-host communication
+    // 配列 (カーネル側) の宣言
     OCL_CHECK(err, cl::Buffer buffer_in1(ctxt, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
                                          source_in1.data(), &err));
     OCL_CHECK(err, cl::Buffer buffer_in2(ctxt, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
@@ -90,23 +91,25 @@ int main(int argc, char** argv) {
                                             source_hw_results.data(), &err));
 
     int size = DATA_SIZE;
+    //引数のセット
     OCL_CHECK(err, err = krnl_vector_add.setArg(0, buffer_in1));
     OCL_CHECK(err, err = krnl_vector_add.setArg(1, buffer_in2));
     OCL_CHECK(err, err = krnl_vector_add.setArg(2, buffer_output));
     OCL_CHECK(err, err = krnl_vector_add.setArg(3, size));
 
     // Copy input data to device global memory
+    // ホストからグローバルメモリへデータ転送
     OCL_CHECK(err, err = q.enqueueMigrateMemObjects({buffer_in1, buffer_in2}, 0 /* 0 means from host*/));
 
     // Launch the Kernel
-    // For HLS kernels global and local size is always (1,1,1). So, it is
-    // recommended
-    // to always use enqueueTask() for invoking HLS kernel
+    // カーネル実行
     OCL_CHECK(err, err = q.enqueueTask(krnl_vector_add));
 
     // Copy Result from Device Global Memory to Host Local Memory
+    // カーネルのグローバルメモリからホストへデータ転送
     OCL_CHECK(err, err = q.enqueueMigrateMemObjects({buffer_output}, CL_MIGRATE_MEM_OBJECT_HOST));
     q.finish();
+    // カーネル止める。
     // OPENCL HOST CODE AREA END
 
     // Compare the results of the Device to the simulation
