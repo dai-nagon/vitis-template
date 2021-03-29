@@ -3,6 +3,11 @@
 #include "xcl2.hpp"
 #define DATA_SIZE 4096
 
+/*
+int main(int argc, char** argv) {
+}
+*/
+
 int main(int argc, char** argv) {
     if (argc != 2) {
         std::cout << "Usage: " << argv[0] << " <XCLBIN File>" << std::endl;
@@ -11,11 +16,11 @@ int main(int argc, char** argv) {
 
     std::string binaryFile = argv[1];
     size_t vector_size_bytes = sizeof(int) * DATA_SIZE;
-        ;
+    
     cl_int err;
-    cl::Context context;
-    cl::Kernel krnl_vector_add;
-    cl::CommandQueue q;
+    cl::Context ctxt;//コンテキストの宣言
+    cl::Kernel krnl_vector_add;//カーネルの宣言
+    cl::CommandQueue q;//コマンドキューの宣言
     // Allocate Memory in Host Memory
     // When creating a buffer with user pointer (CL_MEM_USE_HOST_PTR), under the
     // hood user ptr
@@ -27,7 +32,7 @@ int main(int argc, char** argv) {
     // boundary. It will
     // ensure that user buffer is used when user create Buffer/Mem object with
     // CL_MEM_USE_HOST_PTR
-//    /*
+    //    /*
     std::vector<int, aligned_allocator<int> > source_in1(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_in2(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_hw_results(DATA_SIZE);
@@ -44,19 +49,19 @@ int main(int argc, char** argv) {
     }
 
     // OPENCL HOST CODE AREA START
-    //デバイス取得
-    auto devices = xcl::get_xil_devices();
+    //デバイスの宣言および取得
+    auto dev = xcl::get_xil_devices();
     //バイナリ(回路データ)読出
     auto fileBuf = xcl::read_binary_file(binaryFile);
     cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};
     bool valid_device = false;
-    for (unsigned int i = 0; i < devices.size(); i++) {
-        auto device = devices[i];
+    for (unsigned int i = 0; i < dev.size(); i++) {
+        auto device = dev[i];
         // コンテキストとコマンドキューの生成 Creating Context and Command Queue for selected Device
-        OCL_CHECK(err, context = cl::Context(device, NULL, NULL, NULL, &err));
-        OCL_CHECK(err, q = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err));
+        OCL_CHECK(err, ctxt = cl::Context(device, NULL, NULL, NULL, &err));
+        OCL_CHECK(err, q = cl::CommandQueue(ctxt, device, CL_QUEUE_PROFILING_ENABLE, &err));
         std::cout << "Trying to program device[" << i << "]: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
-        cl::Program program(context, {device}, bins, NULL, &err);
+        cl::Program program(ctxt, {device}, bins, NULL, &err);
         if (err != CL_SUCCESS) {
             std::cout << "Failed to program device[" << i << "] with xclbin file!\n";
         } else {
@@ -74,11 +79,11 @@ int main(int argc, char** argv) {
     // Allocate Buffer in Global Memory
     // Buffers are allocated using CL_MEM_USE_HOST_PTR for efficient memory and
     // Device-to-host communication
-    OCL_CHECK(err, cl::Buffer buffer_in1(context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
+    OCL_CHECK(err, cl::Buffer buffer_in1(ctxt, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
                                          source_in1.data(), &err));
-    OCL_CHECK(err, cl::Buffer buffer_in2(context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
+    OCL_CHECK(err, cl::Buffer buffer_in2(ctxt, CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY, vector_size_bytes,
                                          source_in2.data(), &err));
-    OCL_CHECK(err, cl::Buffer buffer_output(context, CL_MEM_USE_HOST_PTR | CL_MEM_WRITE_ONLY, vector_size_bytes,
+    OCL_CHECK(err, cl::Buffer buffer_output(ctxt, CL_MEM_USE_HOST_PTR | CL_MEM_WRITE_ONLY, vector_size_bytes,
                                             source_hw_results.data(), &err));
 
     int size = DATA_SIZE;
