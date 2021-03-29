@@ -27,11 +27,14 @@ int main(int argc, char** argv) {
     // boundary. It will
     // ensure that user buffer is used when user create Buffer/Mem object with
     // CL_MEM_USE_HOST_PTR
+//    /*
     std::vector<int, aligned_allocator<int> > source_in1(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_in2(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_hw_results(DATA_SIZE);
     std::vector<int, aligned_allocator<int> > source_sw_results(DATA_SIZE);
-
+ //   */
+   // int source_in1[DATA_SIZE], source_in2[DATA_SIZE], source_hw_results[DATA_SIZE], source_sw_results[DATA_SIZE];
+    
     // Create the test data
     std::generate(source_in1.begin(), source_in1.end(), std::rand);
     std::generate(source_in2.begin(), source_in2.end(), std::rand);
