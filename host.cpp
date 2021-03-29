@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     }
 
     std::string binaryFile = argv[1];
-    size_t vector_size_bytes = sizeof(int) * 
+    size_t vector_size_bytes = sizeof(int) * DATA_SIZE;
         ;
     cl_int err;
     cl::Context context;
