@@ -5,9 +5,12 @@
 
 /*
 int main(int argc, char** argv) {
+    int in1[DATA_SIZE], in2[DATA_SIZE], out_r[DATA_SIZE];
+    krnl(in1, in2, out_r,DATA_SIZE); 
 }
+これと等価な処理をOpenCLで記述すると↓のようになる．
 */
-
+  
 int main(int argc, char** argv) {
     if (argc != 2) {
         std::cout << "Usage: " << argv[0] << " <XCLBIN File>" << std::endl;
